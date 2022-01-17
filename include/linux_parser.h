@@ -27,6 +27,9 @@ int RunningProcesses();
 std::string OperatingSystem();
 std::string Kernel();
 
+// Parsing Helper functions
+std::vector<std::string> splitOnString(std::string &input, std::string delimiter);
+
 // CPU
 enum CPUStates {
   kUser_ = 0,
@@ -41,10 +44,10 @@ enum CPUStates {
   kGuestNice_
 };
 std::vector<std::string> CpuUtilization();
-long Jiffies();
-long ActiveJiffies();
-long ActiveJiffies(int pid);
-long IdleJiffies();
+long Jiffies(); // Read and return the number of jiffies for the system
+long ActiveJiffies(); // Read and return the number of active jiffies for the system
+long ActiveJiffies(int pid); // Read and return the number of active jiffies for a PID
+long IdleJiffies(); // Read and return the number of idle jiffies for the system
 
 // Processes
 std::string Command(int pid);
