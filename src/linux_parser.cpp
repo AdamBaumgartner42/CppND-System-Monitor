@@ -12,22 +12,6 @@ using std::to_string;
 using std::vector;
 
 
-// Local function
-vector<string> LinuxParser::splitOnString(string &input, string delimiter) {
-  vector<string> result;
-  int start = 0;
-  int end = input.substr(0).find(delimiter); // begin .find() at index 0 of the string
-  while(start <= end) {
-    string word = input.substr(start, end-start); // end - start is length
-    result.push_back(word);
-    start = end + delimiter.size(); // update start index
-    end = start + input.substr(start).find(delimiter); // update end index
-  }
-  // last word : no more delimiters in string
-  string word = input.substr(start);
-  result.push_back(word);
-  return result;
-}
 
 
 // DONE: An example of how to read data from the filesystem
@@ -125,44 +109,57 @@ long LinuxParser::UpTime() {
   return std::stol(uptime);
 }
 
-// TODO: Read and return the number of jiffies for the system
+// DONE: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() {
-  string path = kProcDirectory + kStatFilename;
-  std::ifstream filestream(path);
-  for (string line; std::getline(filestream,line);){
-    vector<string> info = splitOnString(line, " ");
-    if(info[0] == "cpu"){
-      long unsigned total_jiffies = 0;
-      for (unsigned int i; i < info.size(); i++){ 
-        if(i > 1){
-          total_jiffies += stoll(info[i]);
-        }
-      }
-      return total_jiffies; // result
-    }
+  vector<string> latestCPU = LinuxParser::CpuUtilization(); 
+  long long jiffies = 0;
+  for(string value : latestCPU){
+    jiffies += std::stoll(value);
   }
-  return 0; // if statement fall through
+  return jiffies; 
 }
 
 // TODO: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
 
-// TODO: Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
+// DONE: Read and return the number of active jiffies for the system
+long LinuxParser::ActiveJiffies() { 
+  vector<string> latestCPU = LinuxParser::CpuUtilization();
+  long long active_jiffies = 0;
+  for(unsigned int i = 0; i < latestCPU.size(); i++){
+    if (i == 3 || i == 4){ 
+      continue; // skip 3: idle, 4: iowait
+    } else {
+      active_jiffies += std::stoll(latestCPU[i]);
+    }
+  } 
+  return active_jiffies; 
+}
 
-// TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+// DONE: Read and return the number of idle jiffies for the system
+long LinuxParser::IdleJiffies() {
+  vector<string> latestCPU = LinuxParser::CpuUtilization();
+  long long idle_jiffies = 0;
+  for(unsigned int i = 0; i < latestCPU.size(); i++){
+    if (i == 3 || i == 4){
+      idle_jiffies += std::stoll(latestCPU[i]);
+    } else {
+      continue;
+    }
+  } 
+  return idle_jiffies; 
+}
 
-// TODO: Read and return CPU utilization
+// DONE: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() { 
   vector<std::string> cpu_usage;
   std::string val; 
   std::string line;
-  std::ifstream stream (kProcDirectory + kStatFilename);
+  std::ifstream filestream (kProcDirectory + kStatFilename);
   
-  if (stream.is_open()){
-    std::getline(stream, line);
+  if (filestream.is_open()){
+    std::getline(filestream, line);
     std::istringstream linestream (line);
     
     while (linestream >> val){ // while a value exists in the line
@@ -190,7 +187,6 @@ int LinuxParser::TotalProcesses() {
       }
     }
   }
-  // fallthrough
   return 0; 
 }
 
@@ -210,7 +206,6 @@ int LinuxParser::RunningProcesses() {
       }
     }
   }
-  // fallthrough
   return 0; 
 }
 
@@ -248,17 +243,24 @@ string LinuxParser::Uid(int pid) {
 // super duplicated with UID function...
 string LinuxParser::User(int uid) { 
 
+  string uid_ = std::to_string(uid); 
+
+  string key, x, value;
+  string line;
   string user_path = kPasswordPath;
   std::ifstream filestream(user_path);
-  for(string line; std::getline(filestream,line);){
-    vector<string> info = splitOnString(line, ":");
-    // 1:user, 2:'x', 3:uid
-    if (stoi(info[2]) == uid){ // string to string comparison
-      return info[0]; // return string
-    }
+  while(std::getline(filestream,line)){
+    std::replace(line.begin(), line.end(), ':', ' ');
+    std::istringstream linestream(line);
+      while (linestream >> key >> x >> value) {
+        if (value == uid_) {
+          return key;
+        }
+      }
   }
-  return string(); // fallthrough if nothing found
+  return string(); 
 }
+
 
 // TODO: Read and return the uptime of a process
 // REMOVE: [[maybe_unused]] once you define the function
