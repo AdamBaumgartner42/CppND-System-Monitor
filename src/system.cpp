@@ -36,7 +36,7 @@ vector<Process>& System::Processes() {
         process.SetPid(pid);
         process.SetUid(LinuxParser::Uid(pid)); 
         process.SetUsername(LinuxParser::User(stoi(process.GetUid()))); 
-        //process.SetCpuUtilization(void);
+        //process.SetCpuUtilization(pid); // hold off on theise 2-26-22 
         //process.SetMemoryUtilization(void);
         //process.SetUptime(void);
         //process.SetCommand(void);

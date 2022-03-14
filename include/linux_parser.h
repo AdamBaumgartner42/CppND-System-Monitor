@@ -29,6 +29,7 @@ std::string Kernel();
 
 // Parsing Helper functions
 std::vector<std::string> splitOnString(std::string &input, std::string delimiter);
+std::string parse_delimiter (std::ifstream& filestream, std::string delimiter);
 
 // CPU
 enum CPUStates {

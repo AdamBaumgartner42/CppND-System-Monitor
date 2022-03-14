@@ -11,9 +11,6 @@ using std::string;
 using std::to_string;
 using std::vector;
 
-
-
-
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::OperatingSystem() {
   string line;
@@ -51,7 +48,6 @@ string LinuxParser::Kernel() {
 }
 
 // BONUS: Update this to use std::filesystem
-// V0: Does not update when process is closed
 vector<int> LinuxParser::Pids() {
   vector<int> pids;
   DIR* directory = opendir(kProcDirectory.c_str());
@@ -118,10 +114,32 @@ long LinuxParser::Jiffies() {
   }
   return jiffies; 
 }
+// 2-26-21
+// DONE: Read and return the number of active jiffies for a PID
+long LinuxParser::ActiveJiffies(int pid) {
+  // sum index 14, 15, 16, 17
+  int const utime = 14;
+  int const stime = 15;
+  int const cutime = 16;
+  int const cstime = 17;
+  int index = 1;
+  long long sum = 0;
+ 
+  std::string line;
+  std::ifstream filestream (kProcDirectory + to_string(pid) + kStatFilename);
 
-// TODO: Read and return the number of active jiffies for a PID
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
+  if (filestream.is_open()){
+    std::getline(filestream, line); 
+    std::stringstream linestream(line); 
+    for(string word;std::getline(linestream, word, ' ');){ 
+      if(index == utime || index == stime || index == cutime || index == cstime){
+        sum += stoll(word);
+      }  
+      index++;    
+    }
+  }
+  return sum; 
+}
 
 // DONE: Read and return the number of active jiffies for the system
 long LinuxParser::ActiveJiffies() { 
@@ -209,9 +227,18 @@ int LinuxParser::RunningProcesses() {
   return 0; 
 }
 
-// TODO: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
+// Active: Read and return the command associated with a process
+string LinuxParser::Command(int pid) { 
+  std::ifstream filestream("/proc/" + std::to_string(pid) + "/cmdline");
+  string line;
+  if(getline(filestream, line)){
+    return line;
+  } else {
+    return string();
+  }
+}
+
+// trying to reproduce the error seen here not happening
 
 // TODO: Read and return the memory used by a process
 // REMOVE: [[maybe_unused]] once you define the function
@@ -243,7 +270,7 @@ string LinuxParser::Uid(int pid) {
 // super duplicated with UID function...
 string LinuxParser::User(int uid) { 
 
-  string uid_ = std::to_string(uid); 
+  string uid_ = std::to_string(uid); // safe? Always works? 
 
   string key, x, value;
   string line;
@@ -267,3 +294,31 @@ string LinuxParser::User(int uid) {
 long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
 
 
+string LinuxParser::parse_delimiter (std::ifstream& filestream, string delimiter){
+  string cmd;
+  for(string line; getline(filestream,line);){
+    vector<string> info = splitOnString(line, delimiter);
+    for(auto data : info){ // issue with first space included
+      cmd = cmd + delimiter + data;
+    }
+  }
+  return cmd;
+}
+
+
+// SplitOnString helper function
+vector<string> LinuxParser::splitOnString(string &input, string delimiter){
+  vector<string> result;
+  int start = 0;
+  int end = input.substr(0).find(delimiter); // begin .find() at index 0 of the string
+  while(start <= end) {
+    string word = input.substr(start, end-start); // end - start is length
+    result.push_back(word);
+    start = end + delimiter.size(); // update start index
+    end = start + input.substr(start).find(delimiter); // update end index
+  }
+  // last word : no more delimiters in string (here is where the cpu data is going.  Verified)
+  string word = input.substr(start);
+  result.push_back(word);
+  return result;
+}

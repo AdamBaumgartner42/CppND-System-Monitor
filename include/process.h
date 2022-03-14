@@ -20,7 +20,6 @@ class Process {
   void SetPid(int pid);
   void SetUid(std::string uid);
   void SetUsername(std::string user);
-
   std::string GetUid();
 
   // TODO: Declare any necessary private members
