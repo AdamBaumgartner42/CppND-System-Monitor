@@ -20,11 +20,13 @@ You need to properly format the uptime. Refer to the comments mentioned in forma
 // DONE: Return the system's CPU
 Processor& System::Cpu() { return cpu_; }
 
-// TODO: Return a container composed of the system's processes
-    // Block: Does not seem to be updating when new programs are added or closed
-            // and if I close and re-open the monitor the entrys are different
+// NEW: Compare interval function
+bool compareInterval(Process a, Process b) {
+    return (b < a);
+}
+
+// DONE: Return a container composed of the system's processes
 vector<Process>& System::Processes() { 
-    // Clear previous processes_ vector
     processes_.clear();
 
     // Parse active pids from /proc/
@@ -36,18 +38,13 @@ vector<Process>& System::Processes() {
         process.SetPid(pid);
         process.SetUid(LinuxParser::Uid(pid)); 
         process.SetUsername(LinuxParser::User(stoi(process.GetUid()))); 
-        //process.SetCpuUtilization(pid); // hold off on theise 2-26-22 
-        //process.SetMemoryUtilization(void);
-        //process.SetUptime(void);
-        //process.SetCommand(void);
+        process.SetCpuUtilization(100*float(LinuxParser::ActiveJiffies(pid)) / LinuxParser::Jiffies());
 
-        processes_.push_back(process); // adds object to vector
+        processes_.push_back(process); 
     }
 
-    // Sort vector by CPU percentage
+    sort(processes_.begin(), processes_.end(), compareInterval ); 
         
-
-    // return vector<process>
     return processes_; 
 }
 

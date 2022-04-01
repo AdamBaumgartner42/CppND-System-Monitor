@@ -19,26 +19,34 @@ float Process::CpuUtilization() {
   return 100*float(LinuxParser::ActiveJiffies(pid_)) / LinuxParser::Jiffies();
 }
 
-// Active: Return the command that generated this process
+// DONE(best I can do): Return the command that generated this process
 string Process::Command() { 
   return LinuxParser::Command(pid_); 
 }
 
-// TODO: Return this process's memory utilization
-string Process::Ram() { return string(); }
+// DONE: Return this process's memory utilization (in MB)
+string Process::Ram() { 
+  return LinuxParser::Ram(pid_);
+}
 
 // DONE: Return the user (name) that generated this process
 string Process::User() { return user_; } 
 
-// TODO: Return the age of this process (in seconds)
-long int Process::UpTime() { return 0; }
+// DONE: Return the age of this process (in seconds)
+long int Process::UpTime() { 
+  return LinuxParser::UpTime(pid_);
+}
 
-// TODO: Overload the "less than" comparison operator for Process objects
-bool Process::operator<(Process const& a[[maybe_unused]]) const { return true; }
+// DONE: Overload the "less than" comparison operator for Process objects
+bool Process::operator<(Process const& a) const { 
+  return cpuUtilization_ < a.cpuUtilization_ ; 
+}
+
 
 
 // Additional Functions
 void Process::SetPid(int pid){ pid_ = pid; }
 void Process::SetUid(std::string uid){ uid_ = uid; }
 void Process::SetUsername(std::string user){ user_ = user; }
+void Process::SetCpuUtilization(float cpuUtilization){ cpuUtilization_ = cpuUtilization; }
 string Process::GetUid(){ return uid_; }

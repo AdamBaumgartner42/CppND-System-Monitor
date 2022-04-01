@@ -5,10 +5,6 @@
 
 // DONE: Return the aggregate CPU utilization
 float Processor::Utilization() { 
-
-  float result = float(LinuxParser::ActiveJiffies()) / LinuxParser::Jiffies();
-
-  return result;
-
+  return float(LinuxParser::ActiveJiffies()) / LinuxParser::Jiffies();
 }
 

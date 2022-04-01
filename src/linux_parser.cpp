@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <math.h>
 
 #include "linux_parser.h"
 
@@ -114,7 +115,7 @@ long LinuxParser::Jiffies() {
   }
   return jiffies; 
 }
-// 2-26-21
+
 // DONE: Read and return the number of active jiffies for a PID
 long LinuxParser::ActiveJiffies(int pid) {
   // sum index 14, 15, 16, 17
@@ -188,7 +189,6 @@ vector<string> LinuxParser::CpuUtilization() {
   return cpu_usage; 
 }
 
-
 // DONE: Read and return the total number of processes (Similarity to active running proccesses)
 int LinuxParser::TotalProcesses() {
   std::string category, count;
@@ -227,9 +227,10 @@ int LinuxParser::RunningProcesses() {
   return 0; 
 }
 
-// Active: Read and return the command associated with a process
+// DONE: Read and return the command associated with a process
+// *Problem*: ncurses_display doesn't match HTOP
 string LinuxParser::Command(int pid) { 
-  std::ifstream filestream("/proc/" + std::to_string(pid) + "/cmdline");
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
   string line;
   if(getline(filestream, line)){
     return line;
@@ -238,14 +239,33 @@ string LinuxParser::Command(int pid) {
   }
 }
 
-// trying to reproduce the error seen here not happening
+// DONE: Read and return the memory used by a process
+string LinuxParser::Ram(int pid) {
+  std::string line, key, value, value_MB_str;
+  std::string const mem_key = "VmSize:";
+  
+  std::ifstream filestream(kProcDirectory + to_string(pid) + kStatusFilename);
+  if (filestream.is_open()){
+    while (std::getline(filestream, line)){
+      std::stringstream linestream(line);
+      if(linestream >> key >> value){
+        if (key == mem_key){
+          if (int value_kB = stoi(value)){
+            double scale = 0.01;
+            double value_MB = value_kB/std::pow(2,10);
+            value_MB = (int)(value_MB/scale)*scale;
+            value_MB_str = to_string(value_MB);
+            
+            return value_MB_str;
+          }
+        }
+      }
+    }
+  }
+  return std::string();
+}
 
-// TODO: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid[[maybe_unused]]) { return string(); }
-
-// TODO: Read and return the user ID associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
+// DONE: Read and return the user ID associated with a process
 string LinuxParser::Uid(int pid) { 
 
   std::string uid_path = kProcDirectory + std::to_string(pid) + kStatusFilename;
@@ -266,8 +286,7 @@ string LinuxParser::Uid(int pid) {
   return string(); // return a blank string as fall through value?
 }
 
-// TODO: Read and return the user associated with a process
-// super duplicated with UID function...
+// DONE: Read and return the user associated with a process
 string LinuxParser::User(int uid) { 
 
   string uid_ = std::to_string(uid); // safe? Always works? 
@@ -288,11 +307,29 @@ string LinuxParser::User(int uid) {
   return string(); 
 }
 
+// DONE: Read and return the uptime of a process
+// *Problem*: values don't match HTOP
+long LinuxParser::UpTime(int pid) { 
+  std::string line;
+  int index = 1;
+  int const uptime_idx = 22;
+  std::ifstream filestream("/proc/" + std::to_string(pid) + "/stat");
+  if (filestream.is_open()){
+    std::getline(filestream, line);
+    std::stringstream linestream(line);
+    for(std::string word;std::getline(linestream, word, ' ');){
+      if(index == uptime_idx){
+        return (stoll(word)/sysconf(_SC_CLK_TCK));
+      }
+      index ++;
+    }
+  }
+  return 0; 
+}
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
 
+
+// Helper Functions
 
 string LinuxParser::parse_delimiter (std::ifstream& filestream, string delimiter){
   string cmd;
